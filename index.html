@@ -195,6 +195,12 @@
   }
   .envelope-scene.is-zoom .envelope-video{
     opacity: 0;
+    /* mask + transform:scale() together is one of the most expensive
+       combinations for Safari to composite — drop the mask the instant
+       the push starts (the video is fading out anyway by then, so the
+       feathered edge is no longer doing any visible work) */
+    -webkit-mask-image: none;
+    mask-image: none;
   }
 
   /* the short, snappy cut from the zoomed-in envelope to the final content —

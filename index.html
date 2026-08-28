@@ -75,29 +75,17 @@
   }
   .intro.is-opening{ cursor: default; }
 
-  /* "Click to Open" stays visible for the entire opening sequence — it
-     only fades away together with the rest of the header, at the zoom */
+  /* "Click to Open" stays visible for the entire opening sequence — the
+     whole header fades away together with everything else in .intro when
+     it cross-fades to the final content (see .intro.is-cut below) */
 
   .intro-header{
-    /* a normal flex child now, stacked above the envelope with .intro's own
-       gap — this is what actually guarantees it can never be covered by the
-       envelope, at any envelope size, instead of guessing a fixed vh offset */
     text-align: center;
     pointer-events: none;
     /* visible immediately — no entrance race the visitor could out-click */
     opacity: 1;
-    /* .envelope-scene's own oversized backdrop (used for the push-in zoom)
-       forms its own stacking context via `transform` and, being later in
-       the DOM, was painting on top of this header and hiding it entirely.
-       Force this header above that whole stacking context explicitly. */
     position: relative;
     z-index: 2;
-  }
-  .intro-header.is-zoom{
-    /* gone the instant the zoom starts — no lingering fade to give away
-       that there was ever a header sitting on top of the envelope */
-    transition: none;
-    opacity: 0;
   }
   .intro-header .mark{
     font-family: var(--font-display);
@@ -123,27 +111,8 @@
     opacity: 0;
     transform: scale(0.82);
     transition: opacity 0.9s ease, transform 0.9s ease;
-    /* plain 2D scale — not a 3D perspective/translateZ transform. A <video>
-       element composited inside a 3D transform is a known source of
-       flicker/tearing on mobile GPUs (especially iOS Safari); 2D scale()
-       is the reliable, glitch-free way to animate video on every device. */
-    will-change: transform;
   }
   .envelope-scene.is-in{ opacity: 1; transform: scale(1); }
-  .envelope-scene.is-zoom{
-    /* opacity is intentionally NOT touched here — the scene itself stays
-       fully visible for the whole push-in; only .intro does a short final
-       cut to the final content once the push has arrived.
-       transform-origin is set from JS to the card's exact position, so
-       the scale grows away from that fixed point instead of the envelope
-       simply inflating from its own centre.
-       The scale goes all the way to 9x for a real, dramatic push — the
-       video itself hands off to the (always-crisp, vector) card text
-       partway through, see .envelope-video below, so nothing raster ever
-       gets magnified far enough to turn blurry. */
-    transition: transform 1.3s cubic-bezier(.5,0,.85,.35);
-    transform: scale(9);
-  }
 
   .envelope{
     position: relative;
@@ -189,22 +158,15 @@
        into the page background — hides any residual mismatch completely */
     -webkit-mask-image: radial-gradient(ellipse 76% 76% at 50% 50%, #000 82%, transparent 100%);
     mask-image: radial-gradient(ellipse 76% 76% at 50% 50%, #000 82%, transparent 100%);
-    /* stays fully visible for the first ~700ms of the 1.3s push (while the
-       scale is still small enough to stay sharp), then hands off quickly
-       to the card text underneath, which keeps scaling up crisply since
-       it's real text, not a raster image — so the push can go dramatically
-       further than the video ever could without turning to mush */
-    transition: opacity 0.3s ease 0.7s;
-  }
-  .envelope-scene.is-zoom .envelope-video{
-    opacity: 0;
   }
 
-  /* the short, snappy cut from the zoomed-in envelope to the final content —
-     deliberately much shorter than the push itself, so the envelope stays
-     legible almost the whole way instead of dissolving mid-zoom */
+  /* the whole intro (header + envelope + video + card text) simply fades
+     out as one flat opacity change, cross-fading with the final content
+     underneath fading in. No transform, no scale, no per-element timing
+     to keep in sync — opacity-only compositing is the one animation every
+     device handles smoothly, no exceptions. */
   .intro.is-cut{
-    transition: opacity 0.4s ease;
+    transition: opacity 0.6s ease;
     opacity: 0;
   }
 
@@ -386,8 +348,6 @@
   var scene = document.getElementById('envelopeScene');
   var intro = document.getElementById('intro');
   var content = document.getElementById('finalContent');
-  var introHeader = document.getElementById('introHeader');
-  var cardPreview = document.querySelector('.card-preview');
 
   /* Rather than trusting one hand-picked hex value against a video whose
      background isn't perfectly uniform, read the real corner pixels of the
@@ -412,18 +372,6 @@
       } catch (e) { /* canvas unavailable — the static fallback colour stands */ }
     };
     img.src = posterSrc;
-  }
-
-  function focusZoomOnCard(){
-    /* plain scale() grows away from transform-origin, so pointing that
-       origin at the card's exact position (instead of the scene's default
-       centre) is what makes it read as "we move toward that point" rather
-       than "the envelope inflates toward the viewer" */
-    var sceneRect = scene.getBoundingClientRect();
-    var cardRect = cardPreview.getBoundingClientRect();
-    var originX = ((cardRect.left + cardRect.width / 2) - sceneRect.left) / sceneRect.width * 100;
-    var originY = ((cardRect.top + cardRect.height / 2) - sceneRect.top) / sceneRect.height * 100;
-    scene.style.transformOrigin = originX + '% ' + originY + '%';
   }
 
   function startTypewriter(){
@@ -467,7 +415,7 @@
   /* Reduced motion must never mean "skip the intro and the click".
      It only means: don't animate the transitions — CSS already forces
      transition/animation to none for reduced-motion below, so the exact
-     same click -> video -> open -> zoom -> cut sequence just happens as
+     same click -> video -> open -> cross-fade sequence just happens as
      instant state changes instead of smooth ones. The visitor still sees
      and clicks "Click to Open" either way. */
   requestAnimationFrame(function(){
@@ -484,22 +432,17 @@
 
   video.addEventListener('ended', function(){
     setTimeout(function(){ scene.classList.add('is-open'); }, 250);
-    /* the envelope + card stay fully visible through the whole 1.3s push;
-       only right at the end does .intro do a quick 0.4s cut to reveal the
-       final content underneath — no long simultaneous cross-fade */
-    setTimeout(function(){
-      focusZoomOnCard();
-      scene.classList.add('is-zoom');
-      introHeader.classList.add('is-zoom');
-    }, 750);
+    /* give the visitor a real moment to see the opened envelope and the
+       card text before cross-fading to the final content — no zoom, no
+       transform, just a plain opacity fade in both directions */
     setTimeout(function(){
       intro.classList.add('is-cut');
       content.classList.add('is-visible');
       startTypewriter();
-    }, 1900);
+    }, 1600);
     setTimeout(function(){
       intro.style.display = 'none';
-    }, 2350);
+    }, 2300);
   });
 
   /* ---------------- notify form ---------------- */

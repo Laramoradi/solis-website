@@ -169,7 +169,10 @@
     margin: 0;
     pointer-events: none;
     opacity: 0;
-    transition: opacity 0.7s ease 0.45s;
+    /* must be fully visible BEFORE the zoom starts — the push begins
+       600ms after is-open triggers, so this has to resolve well inside
+       that window or the text visibly "pops in" mid-zoom */
+    transition: opacity 0.3s ease;
   }
   .envelope-scene.is-open .card-preview{ opacity: 1; }
 
@@ -195,12 +198,6 @@
   }
   .envelope-scene.is-zoom .envelope-video{
     opacity: 0;
-    /* mask + transform:scale() together is one of the most expensive
-       combinations for Safari to composite — drop the mask the instant
-       the push starts (the video is fading out anyway by then, so the
-       feathered edge is no longer doing any visible work) */
-    -webkit-mask-image: none;
-    mask-image: none;
   }
 
   /* the short, snappy cut from the zoomed-in envelope to the final content —
@@ -494,7 +491,7 @@
       focusZoomOnCard();
       scene.classList.add('is-zoom');
       introHeader.classList.add('is-zoom');
-    }, 600);
+    }, 750);
     setTimeout(function(){
       intro.classList.add('is-cut');
       content.classList.add('is-visible');

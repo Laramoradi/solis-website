@@ -185,9 +185,13 @@
     opacity: 0;
   }
 
-  @media (prefers-reduced-motion: reduce){
-    .envelope-scene, .envelope-video, .intro-header, .card-preview, .intro, .click-hint{ transition: none !important; animation: none !important; }
-  }
+  /* NOTE: deliberately no blanket `transition: none` for
+     prefers-reduced-motion here. This intro is opt-in — nothing moves
+     until the visitor taps "Click to Open" — and killing every
+     transition made the whole sequence snap to its end state, which
+     reads as broken rather than as "calmer". Reduced-motion visitors
+     instead get a gentler, shorter version of the same push, handled
+     in pushZoom() below. */
 
   /* ================= final content ================= */
   .content{
@@ -444,14 +448,17 @@
     scene.classList.add('is-zoom');
     introHeader.classList.add('is-zoom');
 
-    if (reduceMotion){
-      scene.style.transform = 'scale(9)';
-      return Promise.resolve();
-    }
-
+    /* Reduced motion gets a shorter, gentler push — NOT an instant jump.
+       Skipping the animation entirely just makes the page look broken
+       (that was the actual bug: iPhones with "Reduce Motion" on saw the
+       envelope teleport straight to the end state, i.e. "no zoom"). */
     var anim = scene.animate(
-      [{ transform: 'scale(1)' }, { transform: 'scale(9)' }],
-      { duration: 1300, easing: 'cubic-bezier(.5,0,.85,.35)', fill: 'forwards' }
+      [{ transform: 'scale(1)' }, { transform: reduceMotion ? 'scale(4)' : 'scale(9)' }],
+      {
+        duration: reduceMotion ? 900 : 1300,
+        easing: reduceMotion ? 'ease-in-out' : 'cubic-bezier(.5,0,.85,.35)',
+        fill: 'forwards'
+      }
     );
     return anim.finished.catch(function(){});
   }

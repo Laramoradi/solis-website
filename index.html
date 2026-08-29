@@ -138,11 +138,15 @@
     left: 24%;
     width: 52%;
     text-align: center;
+    /* these MUST mirror .wordmark exactly (family/weight/letter-spacing/
+       colour) — the push scales this text up until it lands precisely on
+       the final wordmark, so any difference would show as a jump at the
+       moment the intro cross-fades out */
     font-family: var(--font-display);
     font-weight: 300;
     font-size: clamp(0.7rem, 2.4vw, 0.95rem);
-    letter-spacing: 0.22em;
-    color: var(--muted);
+    letter-spacing: 0.16em;
+    color: var(--ink);
     margin: 0;
     pointer-events: none;
     opacity: 0;
@@ -168,20 +172,22 @@
     mask-image: radial-gradient(ellipse 76% 76% at 50% 50%, #000 82%, transparent 100%);
     /* stays visible for the first stretch of the push (while still small
        enough to stay sharp), then hands off to the crisp vector card text
-       underneath, which keeps scaling without ever turning to mush */
-    transition: opacity 0.3s ease 0.7s;
+       underneath, which keeps scaling without ever turning to mush.
+       Long and soft so the lace dissolves rather than blinks out. */
+    transition: opacity 0.7s ease 0.55s;
   }
   .envelope-scene.is-zoom .envelope-video{
     opacity: 0;
   }
 
-  /* the whole intro (header + envelope + video + card text) simply fades
-     out as one flat opacity change, cross-fading with the final content
-     underneath fading in. No transform, no scale, no per-element timing
-     to keep in sync — opacity-only compositing is the one animation every
-     device handles smoothly, no exceptions. */
+  /* the whole intro (header + envelope + video + card text) fades out as
+     one flat opacity change, cross-fading with the final content
+     underneath. By this point the card's SOLIS is already sitting exactly
+     where the final wordmark is, so what's really being swapped is two
+     near-identical images — the fade only has to carry the REST of the
+     page in. Long and gentle, overlapping the tail of the push. */
   .intro.is-cut{
-    transition: opacity 0.6s ease;
+    transition: opacity 0.85s cubic-bezier(.4,0,.2,1);
     opacity: 0;
   }
 
@@ -433,34 +439,70 @@
   matchBackgroundToVideo(video.poster);
   var reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-  /* Driven by the Web Animations API rather than a CSS transition: this
-     gives a real Promise (anim.finished) that resolves exactly when the
-     push is done, instead of a setTimeout guessing the duration — the
-     rest of the sequence chains off that, so it can never drift out of
-     sync with what's actually on screen. */
-  function pushZoom(){
+  var PUSH_MS = 1500;             /* length of the camera push */
+  var CROSSFADE_OVERLAP_MS = 450; /* how far the fade reaches back into it */
+
+  /* A match cut: the SOLIS printed on the card is scaled up until it sits
+     exactly on top of the final page's SOLIS wordmark — same size, same
+     spot. Because the two are then pixel-identical, the cross-fade reads
+     as one continuous camera move instead of "a SOLIS appears, then a
+     different SOLIS appears".
+
+     Scaling by S about an origin O maps a point P to O + S*(P - O).
+     Setting that equal to the wordmark's centre W and solving for O gives
+     O = (W - S*C) / (1 - S), which is the origin that lands the card's
+     centre C exactly on W. S itself comes from the font-size ratio, so
+     the text also ends up the right SIZE, not just in the right place. */
+  function matchCutTransform(){
     var cardPreview = document.querySelector('.card-preview');
-    var sceneRect = scene.getBoundingClientRect();
+    var finalMark = document.querySelector('.wordmark');
+
     var cardRect = cardPreview.getBoundingClientRect();
-    var originX = ((cardRect.left + cardRect.width / 2) - sceneRect.left) / sceneRect.width * 100;
-    var originY = ((cardRect.top + cardRect.height / 2) - sceneRect.top) / sceneRect.height * 100;
-    scene.style.transformOrigin = originX + '% ' + originY + '%';
+    var markRect = finalMark.getBoundingClientRect();
+    var cardFont = parseFloat(getComputedStyle(cardPreview).fontSize);
+    var markFont = parseFloat(getComputedStyle(finalMark).fontSize);
+
+    var scale = markFont / cardFont;
+    var cx = cardRect.left + cardRect.width / 2;
+    var cy = cardRect.top + cardRect.height / 2;
+    var wx = markRect.left + markRect.width / 2;
+    var wy = markRect.top + markRect.height / 2;
+
+    var ox = (wx - scale * cx) / (1 - scale);
+    var oy = (wy - scale * cy) / (1 - scale);
+
+    var sceneRect = scene.getBoundingClientRect();
+    return {
+      scale: scale,
+      origin: ((ox - sceneRect.left) / sceneRect.width * 100) + '% ' +
+              ((oy - sceneRect.top) / sceneRect.height * 100) + '%'
+    };
+  }
+
+  function pushZoom(){
+    var target = matchCutTransform();
+    scene.style.transformOrigin = target.origin;
     scene.classList.add('is-zoom');
     introHeader.classList.add('is-zoom');
 
     /* Reduced motion gets a shorter, gentler push — NOT an instant jump.
        Skipping the animation entirely just makes the page look broken
        (that was the actual bug: iPhones with "Reduce Motion" on saw the
-       envelope teleport straight to the end state, i.e. "no zoom"). */
+       envelope teleport straight to the end state, i.e. "no zoom").
+       The end scale stays identical either way — it has to, or the match
+       cut would no longer line up. */
+    var duration = reduceMotion ? 900 : PUSH_MS;
     var anim = scene.animate(
-      [{ transform: 'scale(1)' }, { transform: reduceMotion ? 'scale(4)' : 'scale(9)' }],
+      [{ transform: 'scale(1)' }, { transform: 'scale(' + target.scale + ')' }],
       {
-        duration: reduceMotion ? 900 : 1300,
-        easing: reduceMotion ? 'ease-in-out' : 'cubic-bezier(.5,0,.85,.35)',
+        duration: duration,
+        /* decelerates into the final frame, so the last stretch is almost
+           still — that's what lets the cross-fade overlap invisibly */
+        easing: 'cubic-bezier(.45,0,.25,1)',
         fill: 'forwards'
       }
     );
-    return anim.finished.catch(function(){});
+    return { anim: anim, duration: duration };
   }
 
   requestAnimationFrame(function(){
@@ -481,11 +523,20 @@
        card text before the push starts — the card fade-in resolves at
        +550ms, so +750ms leaves it settled, not popping in mid-push */
     setTimeout(function(){
-      pushZoom().then(function(){
+      var push = pushZoom();
+      /* Overlap the cross-fade with the tail of the push instead of
+         waiting for it to stop first. The easing has all but settled by
+         then and the card's SOLIS is already sitting on the final
+         wordmark's exact spot, so the two images are effectively the
+         same picture — the hand-off becomes invisible rather than a
+         visible "zoom ends, now fade" beat. */
+      setTimeout(function(){
         intro.classList.add('is-cut');
         content.classList.add('is-visible');
         startTypewriter();
-        setTimeout(function(){ intro.style.display = 'none'; }, 650);
+      }, Math.max(0, push.duration - CROSSFADE_OVERLAP_MS));
+      push.anim.finished.catch(function(){}).then(function(){
+        setTimeout(function(){ intro.style.display = 'none'; }, 700);
       });
     }, 750);
   });

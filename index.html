@@ -75,9 +75,8 @@
   }
   .intro.is-opening{ cursor: default; }
 
-  /* "Click to Open" stays visible for the entire opening sequence — the
-     whole header fades away together with everything else in .intro when
-     it cross-fades to the final content (see .intro.is-cut below) */
+  /* "Click to Open" stays visible for the entire opening sequence — it
+     only disappears, instantly, the moment the push starts */
 
   .intro-header{
     text-align: center;
@@ -86,6 +85,10 @@
     opacity: 1;
     position: relative;
     z-index: 2;
+  }
+  .intro-header.is-zoom{
+    transition: none;
+    opacity: 0;
   }
   .intro-header .mark{
     font-family: var(--font-display);
@@ -111,8 +114,13 @@
     opacity: 0;
     transform: scale(0.82);
     transition: opacity 0.9s ease, transform 0.9s ease;
+    will-change: transform;
   }
   .envelope-scene.is-in{ opacity: 1; transform: scale(1); }
+  /* the push itself is driven from JS via the Web Animations API (see
+     pushZoom() below) rather than a CSS transition — this gives an actual
+     Promise (anim.finished) to chain the next step off, instead of a
+     setTimeout guessing how long the animation takes */
 
   .envelope{
     position: relative;
@@ -158,6 +166,13 @@
        into the page background — hides any residual mismatch completely */
     -webkit-mask-image: radial-gradient(ellipse 76% 76% at 50% 50%, #000 82%, transparent 100%);
     mask-image: radial-gradient(ellipse 76% 76% at 50% 50%, #000 82%, transparent 100%);
+    /* stays visible for the first stretch of the push (while still small
+       enough to stay sharp), then hands off to the crisp vector card text
+       underneath, which keeps scaling without ever turning to mush */
+    transition: opacity 0.3s ease 0.7s;
+  }
+  .envelope-scene.is-zoom .envelope-video{
+    opacity: 0;
   }
 
   /* the whole intro (header + envelope + video + card text) simply fades
@@ -348,6 +363,7 @@
   var scene = document.getElementById('envelopeScene');
   var intro = document.getElementById('intro');
   var content = document.getElementById('finalContent');
+  var introHeader = document.getElementById('introHeader');
 
   /* Rather than trusting one hand-picked hex value against a video whose
      background isn't perfectly uniform, read the real corner pixels of the
@@ -411,13 +427,35 @@
 
   var video = document.getElementById('envelopeVideo');
   matchBackgroundToVideo(video.poster);
+  var reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-  /* Reduced motion must never mean "skip the intro and the click".
-     It only means: don't animate the transitions — CSS already forces
-     transition/animation to none for reduced-motion below, so the exact
-     same click -> video -> open -> cross-fade sequence just happens as
-     instant state changes instead of smooth ones. The visitor still sees
-     and clicks "Click to Open" either way. */
+  /* Driven by the Web Animations API rather than a CSS transition: this
+     gives a real Promise (anim.finished) that resolves exactly when the
+     push is done, instead of a setTimeout guessing the duration — the
+     rest of the sequence chains off that, so it can never drift out of
+     sync with what's actually on screen. */
+  function pushZoom(){
+    var cardPreview = document.querySelector('.card-preview');
+    var sceneRect = scene.getBoundingClientRect();
+    var cardRect = cardPreview.getBoundingClientRect();
+    var originX = ((cardRect.left + cardRect.width / 2) - sceneRect.left) / sceneRect.width * 100;
+    var originY = ((cardRect.top + cardRect.height / 2) - sceneRect.top) / sceneRect.height * 100;
+    scene.style.transformOrigin = originX + '% ' + originY + '%';
+    scene.classList.add('is-zoom');
+    introHeader.classList.add('is-zoom');
+
+    if (reduceMotion){
+      scene.style.transform = 'scale(9)';
+      return Promise.resolve();
+    }
+
+    var anim = scene.animate(
+      [{ transform: 'scale(1)' }, { transform: 'scale(9)' }],
+      { duration: 1300, easing: 'cubic-bezier(.5,0,.85,.35)', fill: 'forwards' }
+    );
+    return anim.finished.catch(function(){});
+  }
+
   requestAnimationFrame(function(){
     setTimeout(function(){ scene.classList.add('is-in'); }, 100);
   });
@@ -433,16 +471,16 @@
   video.addEventListener('ended', function(){
     setTimeout(function(){ scene.classList.add('is-open'); }, 250);
     /* give the visitor a real moment to see the opened envelope and the
-       card text before cross-fading to the final content — no zoom, no
-       transform, just a plain opacity fade in both directions */
+       card text before the push starts — the card fade-in resolves at
+       +550ms, so +750ms leaves it settled, not popping in mid-push */
     setTimeout(function(){
-      intro.classList.add('is-cut');
-      content.classList.add('is-visible');
-      startTypewriter();
-    }, 1600);
-    setTimeout(function(){
-      intro.style.display = 'none';
-    }, 2300);
+      pushZoom().then(function(){
+        intro.classList.add('is-cut');
+        content.classList.add('is-visible');
+        startTypewriter();
+        setTimeout(function(){ intro.style.display = 'none'; }, 650);
+      });
+    }, 750);
   });
 
   /* ---------------- notify form ---------------- */

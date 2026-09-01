@@ -362,8 +362,8 @@
   <p class="form-msg" id="formMsg" role="status" aria-live="polite"></p>
 
   <nav class="social" aria-label="Social media">
-    <a href="https://instagram.com/solis" target="_blank" rel="noopener noreferrer">Instagram</a>
-    <a href="mailto:hello@solis.com">hello@solis.com</a>
+    <a href="https://instagram.com/solis.couture" target="_blank" rel="noopener noreferrer">Instagram</a>
+    <a href="mailto:contact@soliscouture.com">contact@soliscouture.com</a>
   </nav>
 </main>
 
@@ -546,6 +546,12 @@
   var msg = document.getElementById('formMsg');
   var button = form.querySelector('button');
 
+  /* Until a real subscribe endpoint is wired in, the form must not
+     pretend to work: silently swallowing an address is worse than
+     saying nothing, because the visitor believes they signed up and
+     will never hear back. */
+  var ENDPOINT_CONFIGURED = form.action.indexOf('YOUR_FORM_ID') === -1;
+
   form.addEventListener('submit', function(e){
     e.preventDefault();
     var email = form.email.value.trim();
@@ -553,6 +559,11 @@
     if (!re.test(email)){
       msg.textContent = 'Please enter a valid email address.';
       msg.classList.add('is-error');
+      return;
+    }
+    if (!ENDPOINT_CONFIGURED){
+      msg.textContent = 'Sign-up opens shortly — thank you for your patience.';
+      msg.classList.remove('is-error');
       return;
     }
     msg.classList.remove('is-error');

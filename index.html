@@ -1,4 +1,4 @@
-<title>Solis — Coming Soon</title>
+<title>SOLIS — Womenswear</title>
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -199,20 +199,35 @@
      instead get a gentler, shorter version of the same push, handled
      in pushZoom() below. */
 
-  /* ================= final content ================= */
-  .content{
+  /* ================= the scroll story =================
+     Both reference sites work the same way: you don't LOOK at a page, you
+     move through it. Each act pins to the viewport while its statement
+     assembles itself, then releases. The scroll position — not a timer —
+     drives every frame, so the visitor is the one operating the camera. */
+  .story{
     position: relative;
+    opacity: 0;
+    transition: opacity 1s ease;
+  }
+  .story.is-visible{ opacity: 1; }
+
+  /* while the envelope sequence runs, the page must not scroll — the
+     match cut measures the wordmark's on-screen position, and a scrolled
+     page would land the zoom in the wrong place */
+  body.is-intro{ overflow: hidden; height: 100svh; }
+
+  .act{ position: relative; }
+
+  /* --- act 1: the hero the match cut lands on --- */
+  .act--hero{
     min-height: 100svh;
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
     text-align: center;
-    padding: 10vh 6vw;
-    opacity: 0;
-    transition: opacity 1s ease;
+    padding: 12vh 6vw;
   }
-  .content.is-visible{ opacity: 1; }
 
   .wordmark{
     font-family: var(--font-display);
@@ -236,24 +251,152 @@
     font-weight: 300;
     font-size: clamp(1.1rem, 2.4vw, 1.45rem);
     color: var(--muted);
-    margin: 0 0 clamp(1.4rem, 3.5vh, 1.8rem);
+    margin: 0;
   }
 
-  .typewriter{
+  /* the invitation to scroll — a hairline that keeps falling, so the
+     gesture is suggested rather than spelled out */
+  .scroll-cue{
+    position: absolute;
+    bottom: 9vh;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+    transition: opacity 0.6s ease;
+  }
+  .scroll-cue.is-gone{ opacity: 0; pointer-events: none; }
+  .scroll-cue span{
+    font-family: var(--font-ui);
+    font-size: 0.58rem;
+    font-weight: 500;
+    letter-spacing: 0.32em;
+    text-transform: uppercase;
+    color: var(--muted-2);
+  }
+  .scroll-cue i{
+    display: block;
+    width: 1px;
+    height: 46px;
+    background: linear-gradient(to bottom, transparent, rgba(15,13,10,0.4));
+    overflow: hidden;
+    position: relative;
+  }
+  .scroll-cue i::after{
+    content: '';
+    position: absolute;
+    left: 0; top: -46px;
+    width: 1px; height: 46px;
+    background: linear-gradient(to bottom, transparent, var(--ink));
+    animation: cue-fall 2.4s cubic-bezier(.6,0,.3,1) infinite;
+  }
+  @keyframes cue-fall{
+    0%{ transform: translateY(0); }
+    60%,100%{ transform: translateY(92px); }
+  }
+  @media (prefers-reduced-motion: reduce){
+    .scroll-cue i::after{ animation: none; transform: translateY(46px); }
+  }
+
+  /* --- film acts: a pinned stage the statement assembles inside --- */
+  .act--film{ height: 260vh; }
+  .act--film .stage{
+    position: sticky;
+    top: 0;
+    height: 100svh;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 7vw;
+  }
+  .act--film .stage img{
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    will-change: transform;
+  }
+  /* keeps the statement legible over any part of the photograph without
+     flattening it into a grey wash */
+  .act--film .stage::after{
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(ellipse 76% 60% at 50% 50%, rgba(0,0,0,0.30), rgba(0,0,0,0.58));
+    pointer-events: none;
+  }
+  /* The light act needs almost no veil: its statement sits on the card's
+     own white paper, so washing the photograph out would only destroy the
+     lace for nothing. A whisper of cream is enough to unify the two acts. */
+  .act--film[data-theme="light"] .stage::after{
+    background: rgba(246,240,236,0.16);
+  }
+  /* park the statement on the paper rather than in the middle of the lace */
+  .act--film[data-theme="light"] .stage{
+    align-items: flex-start;
+    padding-top: 27svh;
+  }
+
+  .statement{
+    position: relative;
+    z-index: 2;
+    margin: 0;
+    max-width: 15em;
+    text-align: center;
     font-family: var(--font-display);
-    font-style: italic;
     font-weight: 300;
-    font-size: clamp(1rem, 2.1vw, 1.25rem);
-    color: var(--muted);
-    min-height: 1.6em;
-    margin: 0 0 clamp(1.7rem, 4.5vh, 2.3rem);
+    font-size: clamp(1.9rem, 6.2vw, 4.2rem);
+    line-height: 1.14;
+    letter-spacing: 0.005em;
+    color: var(--cream);
   }
-  .typewriter .caret{
+  .act--film[data-theme="light"] .statement{ color: var(--ink); }
+  .statement .w{
     display: inline-block;
-    margin-left: 2px;
-    animation: blink 0.9s step-end infinite;
+    will-change: opacity, transform, filter;
   }
-  @keyframes blink{ 50%{ opacity: 0; } }
+
+  /* --- a quiet act on the page's own ground, between two photographs.
+         The references alternate exactly like this; the still moments are
+         what make the loud ones land. --- */
+  .act--quiet{
+    min-height: 92svh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 16vh 8vw;
+  }
+  .act--quiet .statement{
+    color: var(--ink);
+    max-width: 13em;
+    font-style: italic;
+  }
+
+  /* --- closing act --- */
+  .act--close{
+    min-height: 100svh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 16vh 6vw 14vh;
+  }
+
+  /* everything on the calm acts arrives on a simple stagger the moment it
+     enters view — no scroll maths needed where nothing is pinned */
+  [data-rise]{
+    opacity: 0;
+    transform: translateY(18px);
+    transition: opacity 1s cubic-bezier(.2,.6,.2,1), transform 1s cubic-bezier(.2,.6,.2,1);
+  }
+  [data-rise].is-in{ opacity: 1; transform: none; }
 
   .cta-line{
     font-family: var(--font-ui);
@@ -262,7 +405,7 @@
     letter-spacing: 0.3em;
     text-transform: uppercase;
     color: var(--muted-2);
-    margin: 0 0 clamp(0.9rem, 2.4vh, 1.2rem);
+    margin: 0 0 clamp(1.2rem, 3vh, 1.6rem);
   }
 
   .notify{
@@ -271,7 +414,6 @@
     align-items: stretch;
     border-bottom: 1px solid rgba(15,13,10,0.35);
     transition: border-color 0.35s ease;
-    margin-bottom: clamp(2rem, 5vh, 2.6rem);
   }
   .notify:focus-within{ border-color: var(--ink); }
 
@@ -306,7 +448,7 @@
 
   .form-msg{
     min-height: 1.3em;
-    margin: -1.6rem 0 2rem;
+    margin: 1rem 0 0;
     font-size: 0.68rem;
     letter-spacing: 0.06em;
     color: #6b7a4f;
@@ -324,9 +466,31 @@
     flex-direction: column;
     align-items: center;
     gap: 8px;
+    margin-top: clamp(2.6rem, 7vh, 3.6rem);
   }
   .social a{ color: var(--muted-2); text-decoration: underline; transition: color 0.3s ease; }
   .social a:hover{ color: var(--ink); }
+
+  .signoff{
+    font-family: var(--font-display);
+    font-weight: 300;
+    font-size: 1.15rem;
+    letter-spacing: 0.34em;
+    color: var(--muted-2);
+    margin: clamp(3rem, 9vh, 4.5rem) 0 0;
+  }
+
+  /* the fixed frame belongs to the page, not to one act — so it inverts
+     while a dark photograph owns the screen instead of vanishing into it */
+  .frame-line, .corner{ transition: background-color 0.5s ease, color 0.5s ease; }
+  body.on-dark .frame-line{ background: rgba(247,241,235,0.22); }
+  body.on-dark .corner{ color: rgba(247,241,235,0.5); }
+
+  @media (max-width: 600px){
+    .act--film{ height: 220vh; }
+    .statement{ max-width: 11em; }
+  }
+
 </style>
 
 <div class="frame-line frame-top" aria-hidden="true"></div>
@@ -346,25 +510,54 @@
   </div>
 </div>
 
-<main class="content" id="finalContent">
-  <h1 class="wordmark">SOLIS</h1>
-  <div class="hr" aria-hidden="true"></div>
-  <p class="lede">Create your own world.</p>
-  <p class="typewriter" id="typewriter" aria-live="polite"><span id="typewriterText"></span><span class="caret">|</span></p>
+<main class="story" id="finalContent">
 
-  <p class="cta-line">Be the first to know.</p>
+  <section class="act act--hero">
+    <h1 class="wordmark">SOLIS</h1>
+    <div class="hr" aria-hidden="true"></div>
+    <p class="lede">Create your own world.</p>
+    <div class="scroll-cue" id="scrollCue" aria-hidden="true">
+      <span>Scroll</span>
+      <i></i>
+    </div>
+  </section>
 
-  <form class="notify" id="notifyForm" action="https://formspree.io/f/YOUR_FORM_ID" method="POST">
-    <label for="email" class="sr-only" style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0);">Email address</label>
-    <input type="email" id="email" name="email" placeholder="Your email address" autocomplete="email" required />
-    <button type="submit">Notify me</button>
-  </form>
-  <p class="form-msg" id="formMsg" role="status" aria-live="polite"></p>
+  <section class="act act--film" data-film data-theme="dark">
+    <div class="stage">
+      <img src="lace.jpg" alt="" loading="lazy" decoding="async" />
+      <p class="statement" data-words>For the woman who needs no introduction.</p>
+    </div>
+  </section>
 
-  <nav class="social" aria-label="Social media">
-    <a href="https://instagram.com/solis.couture" target="_blank" rel="noopener noreferrer">Instagram</a>
-    <a href="mailto:contact@soliscouture.com">contact@soliscouture.com</a>
-  </nav>
+  <section class="act act--quiet">
+    <p class="statement" data-rise>Elegance is never accidental.</p>
+  </section>
+
+  <section class="act act--film" data-film data-theme="light">
+    <div class="stage">
+      <img src="card.jpg" alt="" loading="lazy" decoding="async" />
+      <p class="statement" data-words>And it starts with you.</p>
+    </div>
+  </section>
+
+  <section class="act act--close">
+    <p class="cta-line" data-rise>Be the first to know.</p>
+
+    <form class="notify" id="notifyForm" action="https://formspree.io/f/YOUR_FORM_ID" method="POST" data-rise>
+      <label for="email" style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0);">Email address</label>
+      <input type="email" id="email" name="email" placeholder="Your email address" autocomplete="email" required />
+      <button type="submit">Notify me</button>
+    </form>
+    <p class="form-msg" id="formMsg" role="status" aria-live="polite"></p>
+
+    <nav class="social" aria-label="Social media" data-rise>
+      <a href="https://instagram.com/solis.couture" target="_blank" rel="noopener noreferrer">Instagram</a>
+      <a href="mailto:contact@soliscouture.com">contact@soliscouture.com</a>
+    </nav>
+
+    <p class="signoff" data-rise>SOLIS</p>
+  </section>
+
 </main>
 
 <script>
@@ -373,6 +566,7 @@
   var scene = document.getElementById('envelopeScene');
   var intro = document.getElementById('intro');
   var content = document.getElementById('finalContent');
+  document.body.classList.add('is-intro');
   var introHeader = document.getElementById('introHeader');
 
   /* Rather than trusting one hand-picked hex value against a video whose
@@ -398,41 +592,6 @@
       } catch (e) { /* canvas unavailable — the static fallback colour stands */ }
     };
     img.src = posterSrc;
-  }
-
-  function startTypewriter(){
-    var phrases = [
-      'For the woman who needs no introduction.',
-      'And it starts with you.',
-      'Elegance is never accidental.'
-    ];
-    var el = document.getElementById('typewriterText');
-    var pi = 0, ci = 0, deleting = false;
-
-    function tick(){
-      var phrase = phrases[pi];
-      if (!deleting){
-        ci++;
-        el.textContent = phrase.slice(0, ci);
-        if (ci === phrase.length){
-          deleting = true;
-          setTimeout(tick, 1800);
-          return;
-        }
-        setTimeout(tick, 55);
-      } else {
-        ci--;
-        el.textContent = phrase.slice(0, ci);
-        if (ci === 0){
-          deleting = false;
-          pi = (pi + 1) % phrases.length;
-          setTimeout(tick, 400);
-          return;
-        }
-        setTimeout(tick, 28);
-      }
-    }
-    tick();
   }
 
   var video = document.getElementById('envelopeVideo');
@@ -509,12 +668,44 @@
     setTimeout(function(){ scene.classList.add('is-in'); }, 100);
   });
 
+  /* The intro locks page scrolling, so every path out of it — including
+     the ones where the video never plays — MUST end here. A codec the
+     browser won't decode or a stalled load would otherwise leave the
+     visitor on a page that cannot be scrolled at all. */
+  var storyShown = false;
+  function revealStory(){
+    if (storyShown) return;
+    storyShown = true;
+    intro.classList.add('is-cut');
+    content.classList.add('is-visible');
+    document.body.classList.remove('is-intro');
+    startStory();
+    setTimeout(function(){ intro.style.display = 'none'; }, 1200);
+  }
+  /* A <video> with several <source> children never fires `error` on
+     itself — the spec fires it on the last <source> that failed and then
+     just leaves networkState at NETWORK_NO_SOURCE. So watch the sources,
+     and back that with a check on whether playback actually moved. */
+  [].slice.call(video.querySelectorAll('source')).forEach(function(source){
+    source.addEventListener('error', function(){
+      if (video.networkState === HTMLMediaElement.NETWORK_NO_SOURCE) revealStory();
+    });
+  });
+
   /* the envelope only opens once the visitor clicks — video starts
      paused on its first (closed) frame via the poster/preload.
      { once: true } guarantees this fires on exactly one click, ever. */
   intro.addEventListener('click', function(){
     intro.classList.add('is-opening');
-    video.play();
+    var playing = video.play();
+    if (playing && playing.catch) playing.catch(revealStory);
+    /* the decisive check: by now a working video has real frames and a
+       moving clock. Neither means it is never going to play. */
+    setTimeout(function(){
+      if (video.readyState < 2 || video.currentTime === 0) revealStory();
+    }, 2200);
+    /* and a hard stop, in case it starts but then wedges mid-way */
+    setTimeout(revealStory, 11000);
   }, { once: true });
 
   video.addEventListener('ended', function(){
@@ -530,16 +721,133 @@
          wordmark's exact spot, so the two images are effectively the
          same picture — the hand-off becomes invisible rather than a
          visible "zoom ends, now fade" beat. */
-      setTimeout(function(){
-        intro.classList.add('is-cut');
-        content.classList.add('is-visible');
-        startTypewriter();
-      }, Math.max(0, push.duration - CROSSFADE_OVERLAP_MS));
+      setTimeout(revealStory, Math.max(0, push.duration - CROSSFADE_OVERLAP_MS));
       push.anim.finished.catch(function(){}).then(function(){
         setTimeout(function(){ intro.style.display = 'none'; }, 700);
       });
     }, 750);
   });
+
+  /* ================= the scroll story =================
+     One rAF-throttled pass over every pinned act. Scroll position is the
+     only input: the visitor decides how fast the statement assembles and
+     can run it backwards, which is what separates this from a video. */
+
+  function clamp(v, lo, hi){ return v < lo ? lo : v > hi ? hi : v; }
+
+  /* wrap each word so it can be animated on its own — done in JS so the
+     markup stays plain readable text for search engines and screen readers */
+  function splitWords(el){
+    var words = el.textContent.trim().split(/\s+/);
+    el.textContent = '';
+    words.forEach(function(word, i){
+      var span = document.createElement('span');
+      span.className = 'w';
+      span.textContent = word;
+      el.appendChild(span);
+      if (i < words.length - 1) el.appendChild(document.createTextNode(' '));
+    });
+    return [].slice.call(el.querySelectorAll('.w'));
+  }
+
+  var films = [].slice.call(document.querySelectorAll('[data-film]')).map(function(section){
+    return {
+      section: section,
+      image: section.querySelector('img'),
+      statement: section.querySelector('[data-words]'),
+      words: splitWords(section.querySelector('[data-words]'))
+    };
+  });
+
+  /* Reduced motion still gets the story — it just gets it whole. Blur and
+     travel are what actually trigger motion sensitivity; a photograph
+     holding still behind settled text does not. */
+  function paintFilm(film){
+    var rect = film.section.getBoundingClientRect();
+    var travel = film.section.offsetHeight - window.innerHeight;
+    var p = travel > 0 ? clamp(-rect.top / travel, 0, 1) : 0;
+
+    /* a slow push into the photograph across the whole pinned stretch */
+    film.image.style.transform = 'scale(' + (1.04 + p * 0.11).toFixed(4) + ')';
+
+    /* words land between 12% and 62% of the scroll, leaving a held beat
+       at the end so the finished sentence gets a moment of its own */
+    var n = film.words.length;
+    var reveal = clamp((p - 0.12) / 0.5, 0, 1) * n;
+    /* and release again at the very end, so the next act arrives clean */
+    var exit = clamp((p - 0.86) / 0.14, 0, 1);
+
+    for (var i = 0; i < n; i++){
+      var wp = clamp(reveal - i, 0, 1);
+      var w = film.words[i];
+      w.style.opacity = (wp * (1 - exit)).toFixed(3);
+      w.style.transform = 'translateY(' + ((1 - wp) * 0.42).toFixed(3) + 'em)';
+      w.style.filter = wp < 1 ? 'blur(' + ((1 - wp) * 7).toFixed(2) + 'px)' : 'none';
+    }
+  }
+
+  function paintFilmStill(film){
+    film.image.style.transform = 'scale(1.04)';
+    film.words.forEach(function(w){
+      w.style.opacity = '1';
+      w.style.transform = 'none';
+      w.style.filter = 'none';
+    });
+  }
+
+  var scrollCue = document.getElementById('scrollCue');
+  var ticking = false;
+
+  function onScroll(){
+    if (ticking) return;
+    ticking = true;
+    requestAnimationFrame(function(){
+      ticking = false;
+      films.forEach(paintFilm);
+      if (scrollCue) scrollCue.classList.toggle('is-gone', window.scrollY > 40);
+    });
+  }
+
+  /* the calm acts don't need scroll maths — they just need to arrive */
+  var rises = [].slice.call(document.querySelectorAll('[data-rise]'));
+  if ('IntersectionObserver' in window){
+    var riseObserver = new IntersectionObserver(function(entries){
+      entries.forEach(function(entry){
+        if (!entry.isIntersecting) return;
+        var index = rises.indexOf(entry.target);
+        entry.target.style.transitionDelay = (index % 4) * 110 + 'ms';
+        entry.target.classList.add('is-in');
+        riseObserver.unobserve(entry.target);
+      });
+    }, { threshold: 0.25, rootMargin: '0px 0px -8% 0px' });
+    rises.forEach(function(el){ riseObserver.observe(el); });
+
+    /* Invert the fixed frame while a photograph owns the screen — both
+       film acts are dark at the EDGES, which is where the frame lives.
+       Observe the pinned stage, not the act: an act is 260vh tall, so it
+       can never reach a 0.5 visibility ratio inside a 100vh viewport and
+       a threshold on it would simply never fire. The stage is exactly one
+       viewport tall, so the ratio is meaningful. */
+    var stages = document.querySelectorAll('.act--film .stage');
+    var darkObserver = new IntersectionObserver(function(entries){
+      entries.forEach(function(entry){
+        document.body.classList.toggle('on-dark', entry.intersectionRatio > 0.55);
+      });
+    }, { threshold: [0, 0.55, 1] });
+    [].slice.call(stages).forEach(function(el){ darkObserver.observe(el); });
+  } else {
+    rises.forEach(function(el){ el.classList.add('is-in'); });
+  }
+
+  function startStory(){
+    if (reduceMotion){
+      films.forEach(paintFilmStill);
+    } else {
+      films.forEach(paintFilm);
+      window.addEventListener('scroll', onScroll, { passive: true });
+    }
+    window.addEventListener('resize', onScroll);
+  }
 
   /* ---------------- notify form ---------------- */
   var form = document.getElementById('notifyForm');

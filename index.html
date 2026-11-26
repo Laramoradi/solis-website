@@ -354,12 +354,13 @@
 
   <p class="cta-line">Be the first to know.</p>
 
-  <form class="notify" id="notifyForm" action="https://formspree.io/f/YOUR_FORM_ID" method="POST">
+  <form class="notify" id="notifyForm" action="https://script.google.com/macros/s/AKfycby9_KAKeQQUXpYU3pZhwAoockVHEerUgQVeNw1ogLjkPwzr-GyGyrxhE6_IvDAOTsrz/exec" method="POST">
     <label for="email" class="sr-only" style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0);">Email address</label>
     <input type="email" id="email" name="email" placeholder="Your email address" autocomplete="email" required />
     <button type="submit">Notify me</button>
   </form>
   <p class="form-msg" id="formMsg" role="status" aria-live="polite"></p>
+  <p class="consent" style="font-family:var(--font-ui);font-size:11px;letter-spacing:0.04em;line-height:1.6;color:var(--muted);max-width:34em;margin:14px auto 0;text-align:center;">By signing up you agree to receive emails from SOLIS Couture about the launch. You can unsubscribe at any time. <a href="/privacy.html" style="color:inherit;">Privacy Policy</a></p>
 
   <nav class="social" aria-label="Social media">
     <a href="https://instagram.com/solis.couture" target="_blank" rel="noopener noreferrer">Instagram</a>
@@ -572,10 +573,10 @@
 
     fetch(form.action, {
       method: 'POST',
-      headers: { 'Accept': 'application/json' },
-      body: new FormData(form)
+      mode: 'no-cors',
+      body: new URLSearchParams({ email: email, source: 'website' })
     }).then(function(res){
-      if (res.ok){
+      if (res.ok || res.type === 'opaque'){
         msg.textContent = 'Thank you — we’ll be in touch.';
         form.reset();
       } else {

@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>SOLIS Couture</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;1,400&display=swap" rel="stylesheet">
+<style>
+  html, body { height: 100%; margin: 0; }
+  body { background: #eeeae6; color: #1a1a1a; font-family: "Cormorant Garamond", Georgia, serif; display: flex; align-items: center; justify-content: center; text-align: center; }
+  main { padding: 24px; }
+  h1 { font-weight: 400; font-size: 44px; letter-spacing: 0.35em; margin: 0 0 28px 0.35em; }
+  #m { font-style: italic; font-size: 22px; margin: 0 0 10px; }
+  #s { font-size: 17px; color: #555; margin: 0; }
+</style>
+</head>
+<body>
+<main>
+  <h1>SOLIS</h1>
+  <p id="m">One moment</p>
+  <p id="s"></p>
+</main>
+<script>
+  var API = 'https://script.google.com/macros/s/AKfycby9_KAKeQQUXpYU3pZhwAoockVHEerUgQVeNw1ogLjkPwzr-GyGyrxhE6_IvDAOTsrz/exec';
+  var q = new URLSearchParams(location.search);
+  var e = q.get('e'), t = q.get('t');
+  var m = document.getElementById('m'), s = document.getElementById('s');
+  function show(a, b) { m.textContent = a; s.textContent = b || ''; }
+  if (!e || !t) {
+    show('This link is not valid.');
+  } else {
+    fetch(API + '?a=unsub&json=1&e=' + encodeURIComponent(e) + '&t=' + encodeURIComponent(t))
+      .then(function (r) { return r.text(); })
+      .then(function (x) {
+        if (x.trim() === 'unsubscribed') {
+          show('You have been unsubscribed.', 'You will not receive any more emails from SOLIS Couture.');
+        } else {
+          show('This link is not valid.');
+        }
+      })
+      .catch(function () {
+        show('Something went wrong.', 'Please write to contact@soliscouture.com and we will remove you.');
+      });
+  }
+</script>
+</body>
+</html>
